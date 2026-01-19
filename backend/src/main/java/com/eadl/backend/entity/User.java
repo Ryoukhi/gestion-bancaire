@@ -15,12 +15,16 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+     @Column(unique = false, nullable = false)
     private String fullName;
 
     @Column(unique = true, nullable = false)
     private String email;
 
+     @Column(unique = true, nullable = false)
     private String password;
+
+    private Boolean active;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Account> accounts;
