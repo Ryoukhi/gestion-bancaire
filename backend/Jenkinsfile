@@ -6,6 +6,7 @@ pipeline {
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         DOCKER_CREDENTIALS = 'dockerhub-credentials'
         SONAR_TOKEN = credentials('sonar-token')
+        BACKEND_DIR = 'backend'
     }
     
     tools {
@@ -25,18 +26,22 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Compilation du projet...'
-                bat 'mvn clean package -DskipTests'
+                dir(BACKEND_DIR) {
+                    bat 'mvn clean package -DskipTests'
+                }
             }
         }
         
         stage('Tests unitaires') {
             steps {
                 echo 'Exécution des tests...'
-                bat 'mvn test'
+                dir(BACKEND_DIR) {
+                    bat 'mvn test'
+                }
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    junit "${BACKEND_DIR}/**/target/surefire-reports/*.xml"
                 }
             }
         }
@@ -44,12 +49,14 @@ pipeline {
         stage('Analyse SonarQube') {
             steps {
                 echo 'Analyse de la qualité du code...'
-                withSonarQubeEnv('SonarQube') {
-                    bat '''
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=Core-banking \
-                        -Dsonar.login=${SONAR_TOKEN}
-                    '''
+                dir(BACKEND_DIR) {
+                    withSonarQubeEnv('SonarQube') {
+                        bat """
+                            mvn sonar:sonar ^
+                            -Dsonar.projectKey=gestion-bancaire ^
+                            -Dsonar.login=%SONAR_TOKEN%
+                        """
+                    }
                 }
             }
         }
@@ -66,9 +73,11 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Construction de l\'image Docker...'
-                script {
-                    dockerImage = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                    docker.build("${DOCKER_IMAGE}:latest")
+                dir(BACKEND_DIR) {
+                    script {
+                        bat "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                        bat "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
+                    }
                 }
             }
         }
@@ -77,9 +86,12 @@ pipeline {
             steps {
                 echo 'Push de l\'image vers Docker Hub...'
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', DOCKER_CREDENTIALS) {
-                        dockerImage.push("${DOCKER_TAG}")
-                        dockerImage.push("latest")
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, 
+                                                     usernameVariable: 'DOCKER_USER', 
+                                                     passwordVariable: 'DOCKER_PASS')]) {
+                        bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                        bat "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        bat "docker push ${DOCKER_IMAGE}:latest"
                     }
                 }
             }
@@ -88,8 +100,8 @@ pipeline {
         stage('Clean up') {
             steps {
                 echo 'Nettoyage des images locales...'
-                bat "docker rmi ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                bat "docker rmi ${DOCKER_IMAGE}:latest"
+                bat "docker rmi ${DOCKER_IMAGE}:${DOCKER_TAG} || exit 0"
+                bat "docker rmi ${DOCKER_IMAGE}:latest || exit 0"
             }
         }
     }
