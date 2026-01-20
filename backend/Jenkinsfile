@@ -25,14 +25,14 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Compilation du projet...'
-                sh 'mvn clean package -DskipTests'
+                bat 'mvn clean package -DskipTests'
             }
         }
         
         stage('Tests unitaires') {
             steps {
                 echo 'Exécution des tests...'
-                sh 'mvn test'
+                bat 'mvn test'
             }
             post {
                 always {
@@ -45,7 +45,7 @@ pipeline {
             steps {
                 echo 'Analyse de la qualité du code...'
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
+                    bat '''
                         mvn sonar:sonar \
                         -Dsonar.projectKey=Core-banking \
                         -Dsonar.login=${SONAR_TOKEN}
@@ -88,8 +88,8 @@ pipeline {
         stage('Clean up') {
             steps {
                 echo 'Nettoyage des images locales...'
-                sh "docker rmi ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                sh "docker rmi ${DOCKER_IMAGE}:latest"
+                bat "docker rmi ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                bat "docker rmi ${DOCKER_IMAGE}:latest"
             }
         }
     }
