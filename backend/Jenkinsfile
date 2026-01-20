@@ -50,7 +50,7 @@ pipeline {
                 echo 'Analyse de la qualité du code...'
                 dir(BACKEND_DIR) {
                     withSonarQubeEnv('SonarQube') {
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=gestion-bancaire'
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=Core-banking'
                     }
                 }
             }
