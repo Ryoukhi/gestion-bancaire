@@ -27,10 +27,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    
     private final JwtUtil jwtUtil;
-    
-    private final UserDetailsService userDetailsService;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -38,21 +35,38 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public UserDetailsService userDetailsService(PasswordEncoder encoder) {
+
+        return username -> {
+            if (!username.equals("admin")) {
+                throw new RuntimeException("User not found");
+            }
+            return org.springframework.security.core.userdetails.User.builder()
+                    .username("admin")
+                    .password(encoder.encode("1234"))
+                    .roles("ADMIN")
+                    .build();
+        };
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                          UserDetailsService userDetailsService) throws Exception {
+
         http.cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html")
                         .permitAll()
-                        // Tout le reste nécessite une authentification
                         .anyRequest().authenticated())
-                .addFilterBefore(new JwtAuthFilter(jwtUtil, userDetailsService),
-                        UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        new JwtAuthFilter(jwtUtil, userDetailsService),
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
@@ -67,25 +81,35 @@ public class SecurityConfig {
     }
 
         
-    @Override
-    protected void doFilterInternal(
-    @NonNull HttpServletRequest request,
-    @NonNull HttpServletResponse response,
-    @NonNull FilterChain filterChain)
-    throws ServletException, IOException {
-    String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            if (jwtUtil.validateJwtToken(token)) {
-                String username = jwtUtil.getUsernameFromToken(token);
-                CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-        }
-        filterChain.doFilter(request, response);
-    }
-    }
+        @Override
+        protected void doFilterInternal(
+                @NonNull HttpServletRequest request,
+                @NonNull HttpServletResponse response,
+                @NonNull FilterChain filterChain)
+                throws ServletException, IOException {
 
+            final String authHeader = request.getHeader("Authorization");
+            String username = null;
+            String jwt = null;
+
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader.substring(7);
+                username = jwtUtil.extractUsername(jwt);
+            }
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                var userDetails = userDetailsService.loadUserByUsername(username);
+
+                if (jwtUtil.extractUsername(jwt).equals(userDetails.getUsername())) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            }
+            filterChain.doFilter(request, response);
+        }
+    }
 }
