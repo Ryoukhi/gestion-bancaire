@@ -30,6 +30,9 @@
 		<java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+		<sonar.organization>eadl-github</sonar.organization>
+		<sonar.host.url>http://localhost:9000</sonar.host.url>
+		<sonar.projectKey>Core-banking</sonar.projectKey>
 	</properties>
 	<dependencies>
 
