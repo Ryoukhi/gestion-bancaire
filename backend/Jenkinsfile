@@ -4,75 +4,75 @@ pipeline {
         maven 'Maven'
         jdk 'JDK17'
     }
+    options {
+        timeout(time: 90, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
     environment {
         SONAR_HOST_URL = 'http://localhost:9000'
     }
     stages {
-        stage('Checkout') {
-            steps {
-                echo 'Récupération du code source...'
-                checkout scm
-            }
-        }
+        stage('Checkout') { steps { checkout scm } }
+
         stage('Build') {
             steps {
-                echo 'Compilation backend...'
                 dir('backend') {
-                    bat 'mvn clean compile'
+                    bat 'mvn clean compile -DskipTests'
                 }
             }
         }
-        stage('Tests unitaires') {
+
+        stage('Tests') {
             steps {
                 dir('backend') {
-                    echo 'Exécution des tests unitaires...'
-                    bat 'mvn test'
+                    bat 'mvn test -Dspring.profiles.active=test'
                 }
             }
             post {
                 always {
                     dir('backend') {
                         junit '**/target/surefire-reports/*.xml'
+                        jacoco execPattern: '**/target/site/jacoco.exec'
                     }
                 }
             }
         }
-        stage('Analyse SonarQube') {
+
+        stage('SonarQube') {
             steps {
                 dir('backend') {
-                    echo 'Analyse SonarQube...'
                     withSonarQubeEnv('SonarQube') {
                         bat 'mvn sonar:sonar -Dsonar.projectKey=gestion-bancaire-backend'
                     }
                 }
             }
         }
+
         stage('Quality Gate') {
             steps {
-                echo 'Vérification Quality Gate...'
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
+
         stage('Package') {
             steps {
                 dir('backend') {
-                    echo 'Package JAR...'
                     bat 'mvn package -DskipTests'
                 }
             }
         }
-        stage('Archive') {
-            steps {
-                echo 'Archivage artefacts...'
-                archiveArtifacts artifacts: 'backend/target/*.jar', fingerprint: true
-            }
-        }
     }
     post {
-        success { echo '✅ Pipeline SUCCESS !' }
-        failure { echo '❌ Pipeline ÉCHOUÉ.' }
-        always { echo 'Nettoyage...' }
+        success {
+            echo '✅ BUILD SUCCESS ! Artefact prêt.'
+        }
+        failure {
+            echo '❌ BUILD ÉCHOUÉ.'
+        }
+        always {
+            cleanWs()
+        }
     }
 }
