@@ -33,6 +33,7 @@
 		<sonar.organization>eadl-github</sonar.organization>
 		<sonar.host.url>http://localhost:9000</sonar.host.url>
 		<sonar.projectKey>Core-banking</sonar.projectKey>
+		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 	</properties>
 	<dependencies>
 
@@ -141,6 +142,11 @@
 					</excludes>
 				</configuration>
 			</plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar-maven-plugin.version}</version>
+            </plugin>
 		</plugins>
 	</build>
 
