@@ -79,16 +79,48 @@ pipeline {
             }
         }
 
+        stage('Build Docker Image') {
+            steps {
+                echo '🐳 Construction de l\'image Docker...'
+                dir(BACKEND_DIR) {
+                    script {
+                        echo "Building image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        
+                        // Vérifier que le Dockerfile existe
+                        bat 'if not exist Dockerfile (echo ERROR: Dockerfile not found && exit 1)'
+                        
+                        // Build l'image
+                        bat "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                        
+                        // Tag comme latest
+                        bat "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
+                        
+                        // Vérifier que l'image a été créée
+                        bat "docker images ${DOCKER_IMAGE}"
+                        
+                        echo "✅ Image Docker créée avec succès"
+                    }
+                }
+            }
+        }
+
         stage('Push to Docker Hub') {
             steps {
-                echo 'Push de l\'image vers Docker Hub...'
+                echo '🚀 Push de l\'image vers Docker Hub...'
                 script {
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS,
                             usernameVariable: 'DOCKER_USER',
                             passwordVariable: 'DOCKER_PASS')]) {
+                        
                         bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                        
+                        echo "Pushing ${DOCKER_IMAGE}:${DOCKER_TAG}..."
                         bat "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        
+                        echo "Pushing ${DOCKER_IMAGE}:latest..."
                         bat "docker push ${DOCKER_IMAGE}:latest"
+                        
+                        echo "✅ Images poussées avec succès sur Docker Hub"
                     }
                 }
             }
