@@ -3,57 +3,42 @@ pipeline {
     tools {
         maven 'Maven'
         jdk 'JDK17'
+        sonarScanner 'SonarScanner'  // ← Nouveau
     }
-    options {
-        timeout(time: 90, unit: 'MINUTES')
-    }
-    environment {
-        SONAR_HOST_URL = 'http://localhost:9000'
-    }
+    options { timeout(time: 90, unit: 'MINUTES') }
+
     stages {
         stage('Checkout') { steps { checkout scm } }
-
         stage('Build') {
-            steps {
-                dir('backend') {
-                    bat 'mvn clean compile'
-                }
-            }
+            steps { dir('backend') { bat 'mvn clean compile' } }
         }
-
-        stage('Tests unitaires') {
+        stage('Tests') {
             steps {
                 dir('backend') {
-                    echo 'Tests SKIPPED (H2 à configurer)'
                     bat 'mvn test -DskipTests'
                 }
             }
             post {
                 always {
                     dir('backend') {
-                        // Conditionné : skip si pas de tests
                         script {
                             if (fileExists('target/surefire-reports/*.xml')) {
                                 junit '**/target/surefire-reports/*.xml'
-                            } else {
-                                echo 'Pas de rapports JUnit (tests skippés)'
                             }
                         }
                     }
                 }
             }
         }
-
         stage('SonarQube') {
             steps {
                 dir('backend') {
-                    withSonarQubeEnv('SonarQube') {
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=gestion-bancaire-backend'
+                    withSonarQubeEnv('SonarQube') {  // ← Nom exact
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=gestion-bancaire'
                     }
                 }
             }
         }
-
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -61,24 +46,11 @@ pipeline {
                 }
             }
         }
-
         stage('Package') {
-            steps {
-                dir('backend') {
-                    bat 'mvn package -DskipTests'
-                }
-            }
+            steps { dir('backend') { bat 'mvn package -DskipTests' } }
         }
-
         stage('Archive') {
-            steps {
-                archiveArtifacts artifacts: 'backend/target/*.jar', fingerprint: true
-            }
+            steps { archiveArtifacts 'backend/target/*.jar' }
         }
-    }
-    post {
-        success { echo '✅ PIPELINE SUCCESS ! 🎉' }
-        failure { echo '❌ PIPELINE FAILURE' }
-        always { cleanWs() }
     }
 }
