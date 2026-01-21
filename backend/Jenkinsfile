@@ -35,7 +35,7 @@ pipeline {
             steps {
                 echo 'Exécution des tests...'
                 dir(BACKEND_DIR) {
-                    bat 'mvn test'
+                    bat 'mvn clean verify'
                 }
             }
             post {
@@ -50,7 +50,7 @@ pipeline {
                 echo 'Analyse de la qualité du code...'
                 dir(BACKEND_DIR) {
                     withSonarQubeEnv('SonarQube') {
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=Core-banking'
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=Core-banking -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
                     }
                 }
             }
