@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven'  // Nom configuré dans Global Tool Configuration
-        jdk 'JDK17'    // JDK 17 configuré dans Global Tool Configuration
+        maven 'Maven'
+        jdk 'JDK17'
     }
 
     environment {
-        SONAR_TOKEN = credentials('sonarqube-token')  // Token créé précédemment
+        SONAR_TOKEN = credentials('sonarqube-token')
         SONAR_PROJECT_KEY = 'com.eadl:backend'
         SONAR_HOST_URL = 'http://localhost:9000'
     }
@@ -21,31 +21,24 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean compile'
+                bat 'mvn clean compile'
             }
         }
 
         stage('Test & Coverage') {
             steps {
-                sh 'mvn test jacoco:report'
-            }
-            post {
-                always {
-                    jacoco(
-                        execPattern: 'target/jacoco.exec'
-                    )
-                }
+                bat 'mvn test jacoco:report'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {  // Nom du serveur SonarQube configuré
-                    sh """
-                        mvn sonar:sonar \
-                          -Dsonar.projectKey=\${SONAR_PROJECT_KEY} \
-                          -Dsonar.host.url=\${SONAR_HOST_URL} \
-                          -Dsonar.login=\${SONAR_TOKEN}
+                withSonarQubeEnv('SonarQube') {
+                    bat """
+                        mvn sonar:sonar ^
+                          -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
+                          -Dsonar.host.url=%SONAR_HOST_URL% ^
+                          -Dsonar.login=%SONAR_TOKEN%
                     """
                 }
             }
@@ -53,7 +46,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
+                timeout(time: 2, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -62,12 +55,12 @@ pipeline {
         stage('Package') {
             when {
                 allOf {
-                    branch 'main'
+                    branch 'jenkins-Ruben'
                     expression { return env.QUALITY_GATE_STATUS == 'PASSED' }
                 }
             }
             steps {
-                sh 'mvn clean package -DskipTests'
+                bat 'mvn clean package -DskipTests'
             }
         }
     }
@@ -77,10 +70,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo '✅ Build réussi avec Quality Gate PASSÉ !'
+            echo '✅ Build réussi !'
         }
         failure {
-            echo '❌ Build échoué ou Quality Gate échoué'
+            echo '❌ Build échoué'
         }
     }
 }
