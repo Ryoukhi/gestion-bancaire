@@ -56,14 +56,11 @@ pipeline {
             }
         }
 
-        stage('Analyse SonarQube') {
+        stage('Quality Gate') {
             steps {
-                echo 'Analyse de la qualité du code...'
-                dir(BACKEND_DIR) {
-                    withSonarQubeEnv('SonarQube') {
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=gestion-bancaire'
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=Core-banking'
-                    }
+                echo 'Vérification du Quality Gate...'
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
