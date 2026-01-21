@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven'
-        jdk 'JDK17'
+        maven 'Maven'      // Nom dans Global Tool Configuration
+        jdk 'JDK17'        // JDK 17 dans Global Tool Configuration
     }
 
     environment {
@@ -15,38 +15,58 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                // IMPORTANT: Clone dans le dossier backend où se trouve pom.xml
+                dir('backend') {
+                    checkout scm
+                }
             }
         }
 
         stage('Build') {
             steps {
-                bat 'mvn clean compile'
+                dir('backend') {
+                    bat 'mvn clean compile'
+                }
             }
         }
 
         stage('Test & Coverage') {
             steps {
-                bat 'mvn test jacoco:report'
+                dir('backend') {
+                    bat 'mvn test jacoco:report'
+                }
+            }
+            post {
+                always {
+                    dir('backend') {
+                        jacoco(
+                            execPattern: 'target/jacoco.exec'
+                        )
+                    }
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    bat """
-                        mvn sonar:sonar ^
-                          -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
-                          -Dsonar.host.url=%SONAR_HOST_URL% ^
-                          -Dsonar.login=%SONAR_TOKEN%
-                    """
+                dir('backend') {
+                    withSonarQubeEnv('SonarQube') {  // Nom du serveur SonarQube configuré
+                        bat """
+                            mvn sonar:sonar ^
+                              -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
+                              -Dsonar.host.url=%SONAR_HOST_URL% ^
+                              -Dsonar.login=%SONAR_TOKEN% ^
+                              -Dsonar.java.coveragePlugin=jacoco ^
+                              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                        """
+                    }
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 2, unit: 'MINUTES') {
+                timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -60,7 +80,9 @@ pipeline {
                 }
             }
             steps {
-                bat 'mvn clean package -DskipTests'
+                dir('backend') {
+                    bat 'mvn clean package -DskipTests -Dmaven.test.skip=true'
+                }
             }
         }
     }
@@ -70,10 +92,13 @@ pipeline {
             cleanWs()
         }
         success {
-            echo '✅ Build réussi !'
+            echo '✅ Build réussi avec Quality Gate PASSÉ !'
+            dir('backend') {
+                archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
+            }
         }
         failure {
-            echo '❌ Build échoué'
+            echo '❌ Build échoué ou Quality Gate échoué'
         }
     }
 }
