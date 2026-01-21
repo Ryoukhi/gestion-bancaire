@@ -56,24 +56,13 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
+        stage('Analyse SonarQube') {
             steps {
-                echo 'Vérification du Quality Gate...'
-                script {
-                    try {
-                        timeout(time: 1, unit: 'MINUTES') {
-                            def qg = waitForQualityGate()
-                            if (qg.status != 'OK') {
-                                echo "⚠️ Quality Gate status: ${qg.status}"
-                                echo "Résultats disponibles sur SonarQube"
-                            } else {
-                                echo "✅ Quality Gate passé avec succès !"
-                            }
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️ Quality Gate timeout ou erreur: ${e.message}"
-                        echo "📊 Vérifiez les résultats manuellement sur http://localhost:9000"
-                        echo "Le pipeline continue vers Docker..."
+                echo 'Analyse de la qualité du code...'
+                dir(BACKEND_DIR) {
+                    withSonarQubeEnv('SonarQube') {
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=gestion-bancaire'
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=Core-banking'
                     }
                 }
             }

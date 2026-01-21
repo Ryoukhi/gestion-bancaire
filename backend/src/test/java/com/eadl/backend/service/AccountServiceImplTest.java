@@ -58,7 +58,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void createAccount_ShouldCreateAccountSuccessfully_WhenUserExists() {
+    void createAccountShouldCreateAccountSuccessfullyWhenUserExists() {
         // Given
         Long userId = 1L;
         AccountType accountType = AccountType.EPARGNE;
@@ -80,7 +80,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void createAccount_ShouldThrowResourceNotFoundException_WhenUserDoesNotExist() {
+    void createAccountShouldThrowResourceNotFoundExceptionWhenUserDoesNotExist() {
         // Given
         Long userId = 999L;
         AccountType accountType = AccountType.COURANT;
