@@ -33,10 +33,9 @@ pipeline {
 
         stage('Tests unitaires') {
             steps {
-                echo 'Exécution des tests avec génération du rapport de couverture...'
+                echo 'Exécution des tests...'
                 dir(BACKEND_DIR) {
-                    // Ajout de jacoco:prepare-agent et jacoco:report
-                    bat 'mvn clean test'
+                    bat 'mvn test'
                 }
             }
             post {
@@ -51,12 +50,7 @@ pipeline {
                 echo 'Analyse de la qualité du code...'
                 dir(BACKEND_DIR) {
                     withSonarQubeEnv('SonarQube') {
-                        // On indique à Sonar où trouver le rapport JaCoCo généré à l'étape précédente
-                        bat '''
-                        mvn sonar:sonar ^
-                        -Dsonar.projectKey=Core-banking ^
-                        -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-                        '''
+                        bat 'mvn sonar:sonar -Dsonar.projectKey=Core-banking'
                     }
                 }
             }
