@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -142,12 +143,13 @@ class AccountServiceImplTest {
         List<AccountResponse> result = accountService.getUserAccounts(userId);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getAccountNumber()).isEqualTo("ACC-111111111");
-        assertThat(result.get(0).getType()).isEqualTo(AccountType.EPARGNE);
-        assertThat(result.get(1).getAccountNumber()).isEqualTo("ACC-222222222");
-        assertThat(result.get(1).getType()).isEqualTo(AccountType.COURANT);
+        assertThat(result)
+        .hasSize(2)
+        .extracting("accountNumber", "type")
+        .containsExactly(
+                tuple("ACC-111111111", AccountType.EPARGNE),
+                tuple("ACC-222222222", AccountType.COURANT)
+        );
 
         verify(accountRepository, times(1)).findByUserId(userId);
     }
@@ -163,8 +165,10 @@ class AccountServiceImplTest {
         List<AccountResponse> result = accountService.getUserAccounts(userId);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
+        assertThat(result)
+            .isNotNull()
+            .isEmpty();
+
 
         verify(accountRepository, times(1)).findByUserId(userId);
     }
