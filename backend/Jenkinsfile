@@ -1,55 +1,86 @@
 pipeline {
     agent any
+
     tools {
-        maven 'Maven'
-        jdk 'JDK17'
+        maven 'Maven'  // Nom configuré dans Global Tool Configuration
+        jdk 'JDK17'    // JDK 17 configuré dans Global Tool Configuration
     }
-    options { timeout(time: 90, unit: 'MINUTES') }
+
+    environment {
+        SONAR_TOKEN = credentials('sonarqube-token')  // Token créé précédemment
+        SONAR_PROJECT_KEY = 'com.eadl:backend'
+        SONAR_HOST_URL = 'http://localhost:9000'
+    }
 
     stages {
-        stage('Checkout') { steps { checkout scm } }
-        stage('Build') {
-            steps { dir('backend') { bat 'mvn clean compile' } }
-        }
-        stage('Tests') {
+        stage('Checkout') {
             steps {
-                dir('backend') {
-                    bat 'mvn test'
-                }
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test & Coverage') {
+            steps {
+                sh 'mvn test jacoco:report'
             }
             post {
                 always {
-                    dir('backend') {
-                        script {
-                            if (fileExists('target/surefire-reports/*.xml')) {
-                                junit '**/target/surefire-reports/*.xml'
-                            }
-                        }
-                    }
+                    jacoco(
+                        execPattern: 'target/jacoco.exec'
+                    )
                 }
             }
         }
-        stage('SonarQube') {
+
+        stage('SonarQube Analysis') {
             steps {
-                dir('backend') {
-                    withSonarQubeEnv('SonarQube') {  // ← Nom exact
-                        bat 'mvn sonar:sonar -Dsonar.projectKey=gestion-bancaire'
-                    }
+                withSonarQubeEnv('SonarQube') {  // Nom du serveur SonarQube configuré
+                    sh """
+                        mvn sonar:sonar \
+                          -Dsonar.projectKey=\${SONAR_PROJECT_KEY} \
+                          -Dsonar.host.url=\${SONAR_HOST_URL} \
+                          -Dsonar.login=\${SONAR_TOKEN}
+                    """
                 }
             }
         }
+
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
+                timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
+
         stage('Package') {
-            steps { dir('backend') { bat 'mvn package -DskipTests' } }
+            when {
+                allOf {
+                    branch 'main'
+                    expression { return env.QUALITY_GATE_STATUS == 'PASSED' }
+                }
+            }
+            steps {
+                sh 'mvn clean package -DskipTests'
+            }
         }
-        stage('Archive') {
-            steps { archiveArtifacts 'backend/target/*.jar' }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo '✅ Build réussi avec Quality Gate PASSÉ !'
+        }
+        failure {
+            echo '❌ Build échoué ou Quality Gate échoué'
         }
     }
 }
