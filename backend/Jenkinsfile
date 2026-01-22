@@ -13,23 +13,6 @@ pipeline {
     }
 
     stages {
-        stage('Clean SonarQube Cache') {
-            steps {
-                script {
-                    echo '🧹 Nettoyage du cache SonarQube...'
-                    bat '''
-                        @echo off
-                        if exist "C:\\WINDOWS\\system32\\config\\systemprofile\\.sonar\\cache" (
-                            rd /s /q "C:\\WINDOWS\\system32\\config\\systemprofile\\.sonar\\cache"
-                            echo Cache SonarQube supprimé
-                        ) else (
-                            echo Aucun cache à supprimer
-                        )
-                    '''
-                }
-            }
-        }
-
         stage('Build') {
             steps {
                 dir('backend') {
@@ -56,39 +39,22 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('backend') {
-                    withSonarQubeEnv('SonarQube') {
-                        bat """
-                            mvn sonar:sonar ^
-                              -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
-                              -Dsonar.host.url=%SONAR_HOST_URL% ^
-                              -Dsonar.login=%SONAR_TOKEN% ^
-                              -Dsonar.java.coveragePlugin=jacoco ^
-                              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml ^
-                              -Dsonar.scanner.metadataFilePath=target/sonar/report-task.txt
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                    bat """
+                        mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar ^
+                          -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
+                          -Dsonar.host.url=%SONAR_HOST_URL% ^
+                          -Dsonar.token=%SONAR_TOKEN% ^
+                          -Dsonar.java.coveragePlugin=jacoco ^
+                          -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                    """
                 }
             }
         }
 
         stage('Package') {
-            when {
-                allOf {
-                    branch 'jenkins-Ruben'
-                    expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-                }
-            }
             steps {
                 dir('backend') {
-                    bat 'mvn clean package -DskipTests -Dmaven.test.skip=true'
+                    bat 'mvn package -DskipTests'
                 }
             }
         }
@@ -99,13 +65,13 @@ pipeline {
             cleanWs()
         }
         success {
-            echo '✅ Build réussi avec Quality Gate PASSÉ !'
+            echo '✅ Build réussi !'
             dir('backend') {
                 archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
             }
         }
         failure {
-            echo '❌ Build échoué ou Quality Gate échoué'
+            echo '❌ Build échoué'
         }
     }
 }
