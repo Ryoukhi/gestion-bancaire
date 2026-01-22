@@ -24,7 +24,7 @@ pipeline {
         stage('Test & Coverage') {
             steps {
                 dir('backend') {
-                    bat 'mvn test jacoco:report'
+                    bat 'mvn test -Dspring.profiles.active=test jacoco:report'
                 }
             }
             post {
