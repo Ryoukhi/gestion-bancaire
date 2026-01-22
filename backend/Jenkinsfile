@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven'      // Nom dans Global Tool Configuration
-        jdk 'JDK17'        // JDK 17 dans Global Tool Configuration
+        maven 'Maven'
+        jdk 'JDK17'
     }
 
     environment {
@@ -12,6 +12,7 @@ pipeline {
         SONAR_HOST_URL = 'http://localhost:9000'
     }
 
+    stages {  // ← AJOUTER CE BLOC
         stage('Build') {
             steps {
                 dir('backend') {
@@ -29,9 +30,7 @@ pipeline {
             post {
                 always {
                     dir('backend') {
-                        jacoco(
-                            execPattern: 'target/jacoco.exec'
-                        )
+                        jacoco(execPattern: 'target/jacoco.exec')
                     }
                 }
             }
@@ -40,7 +39,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('backend') {
-                    withSonarQubeEnv('SonarQube') {  // Nom du serveur SonarQube configuré
+                    withSonarQubeEnv('SonarQube') {
                         bat """
                             mvn sonar:sonar ^
                               -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
@@ -75,7 +74,7 @@ pipeline {
                 }
             }
         }
-    }
+    }  // ← FIN DU BLOC stages
 
     post {
         always {
