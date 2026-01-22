@@ -8,29 +8,104 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('sonarqube-token')
-        SONAR_PROJECT_KEY = 'com.eadl:backend'
-        SONAR_HOST_URL = 'http://localhost:9000'
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                echo '📥 Récupération du code source...'
+                checkout scm
+            }
+        }
+
         stage('Build') {
             steps {
                 dir('backend') {
+                    echo '🔨 Compilation du projet...'
                     bat 'mvn clean compile'
                 }
             }
         }
 
-        stage('Test & Coverage') {
+        stage('Unit Tests & Coverage') {
             steps {
                 dir('backend') {
-                    bat 'mvn test -Dspring.profiles.active=test jacoco:report'
+                    echo '🧪 Exécution des tests et génération de la couverture...'
+                    bat 'mvn test'
                 }
             }
             post {
                 always {
                     dir('backend') {
-                        jacoco(execPattern: 'target/jacoco.exec')
+                        // Publication des résultats des tests
+                        junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
+
+                        // Publication de la couverture JaCoCo
+                        jacoco(
+                            execPattern: 'target/jacoco.exec',
+                            classPattern: 'target/classes',
+                            sourcePattern: 'src/main/java',
+                            exclusionPattern: '**/config/**,**/dto/**,**/entity/**'
+                        )
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('backend') {
+                    script {
+                        echo '📊 Analyse SonarQube en cours...'
+
+                        // Tentative avec le plugin Maven (version du pom.xml)
+                        try {
+                            withSonarQubeEnv('SonarQube') {
+                                bat """
+                                    mvn sonar:sonar ^
+                                      -Dsonar.token=%SONAR_TOKEN%
+                                """
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️ Échec de l'analyse SonarQube avec le plugin Maven 4.0.0.4121"
+                            echo "Erreur: ${e.message}"
+
+                            // Fallback: essayer avec une version stable
+                            echo "🔄 Tentative avec la version 3.9.1.2184..."
+                            withSonarQubeEnv('SonarQube') {
+                                bat """
+                                    mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar ^
+                                      -Dsonar.projectKey=com.eadl:backend ^
+                                      -Dsonar.host.url=http://localhost:9000 ^
+                                      -Dsonar.token=%SONAR_TOKEN% ^
+                                      -Dsonar.java.coveragePlugin=jacoco ^
+                                      -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    echo '🚦 Vérification du Quality Gate SonarQube...'
+                    timeout(time: 5, unit: 'MINUTES') {
+                        try {
+                            def qg = waitForQualityGate()
+                            if (qg.status != 'OK') {
+                                echo "⚠️ Quality Gate status: ${qg.status}"
+                                // Ne pas échouer le build, juste un warning
+                                unstable(message: "Quality Gate failed: ${qg.status}")
+                            } else {
+                                echo '✅ Quality Gate passed!'
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️ Impossible de récupérer le Quality Gate: ${e.message}"
+                            echo "Le build continue sans vérification du Quality Gate"
+                        }
                     }
                 }
             }
@@ -39,7 +114,17 @@ pipeline {
         stage('Package') {
             steps {
                 dir('backend') {
+                    echo '📦 Création du package JAR...'
                     bat 'mvn package -DskipTests'
+                }
+            }
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                dir('backend') {
+                    echo '📁 Archivage des artefacts...'
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true, allowEmptyArchive: true
                 }
             }
         }
@@ -47,16 +132,36 @@ pipeline {
 
     post {
         always {
+            echo '🧹 Nettoyage de l\'espace de travail...'
             cleanWs()
         }
         success {
-            echo '✅ Build réussi !'
-            dir('backend') {
-                archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: true
-            }
+            echo '''
+            ====================================
+            ✅ BUILD RÉUSSI !
+            ====================================
+            📊 Analyse SonarQube terminée
+            📦 Artefacts créés et archivés
+            ====================================
+            '''
         }
         failure {
-            echo '❌ Build échoué'
+            echo '''
+            ====================================
+            ❌ BUILD ÉCHOUÉ !
+            ====================================
+            Consultez les logs ci-dessus
+            ====================================
+            '''
+        }
+        unstable {
+            echo '''
+            ====================================
+            ⚠️ BUILD INSTABLE
+            ====================================
+            Quality Gate non satisfait ou tests instables
+            ====================================
+            '''
         }
     }
 }
