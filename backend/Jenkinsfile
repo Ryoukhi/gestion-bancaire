@@ -12,16 +12,6 @@ pipeline {
         SONAR_HOST_URL = 'http://localhost:9000'
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                // IMPORTANT: Clone dans le dossier backend où se trouve pom.xml
-                dir('backend') {
-                    checkout scm
-                }
-            }
-        }
-
         stage('Build') {
             steps {
                 dir('backend') {
