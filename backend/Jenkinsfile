@@ -31,7 +31,7 @@ pipeline {
             steps {
                 dir('backend') {
                     echo '🧪 Exécution des tests et génération de la couverture...'
-                    bat 'mvn test'
+                    bat 'mvn test -Dspring.profiles.active=test'
                 }
             }
             post {
