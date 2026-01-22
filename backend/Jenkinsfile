@@ -40,10 +40,14 @@ pipeline {
             steps {
                 script {
                     echo "🔍 Vérification de la connexion à SonarQube..."
-                    def curlTest = bat(script: "curl -s -o nul -w \"%%{http_code}\" ${SONAR_HOST_URL}/api/system/status", returnStdout: true).trim()
-                    echo "Code de réponse SonarQube: ${curlTest}"
+                    def curlTest = bat(script: "@curl -s -o nul -w \"%%{http_code}\" ${SONAR_HOST_URL}/api/system/status", returnStdout: true).trim()
+                    echo "Code de réponse brut: [${curlTest}]"
 
-                    if (curlTest != "200") {
+                    // Extraire uniquement le code HTTP (les 3 derniers caractères)
+                    def httpCode = curlTest.replaceAll(/.*(\d{3}).*/, '$1')
+                    echo "Code HTTP extrait: ${httpCode}"
+
+                    if (httpCode != "200") {
                         error("❌ SonarQube n'est pas accessible à ${SONAR_HOST_URL}")
                     }
                     echo "✅ SonarQube est accessible"
