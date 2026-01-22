@@ -12,7 +12,7 @@ pipeline {
         SONAR_HOST_URL = 'http://localhost:9000'
     }
 
-    stages {  // ← AJOUTER CE BLOC
+    stages {
         stage('Build') {
             steps {
                 dir('backend') {
@@ -36,6 +36,21 @@ pipeline {
             }
         }
 
+        stage('Verify SonarQube Connection') {
+            steps {
+                script {
+                    echo "🔍 Vérification de la connexion à SonarQube..."
+                    def curlTest = bat(script: "curl -s -o nul -w \"%%{http_code}\" ${SONAR_HOST_URL}/api/system/status", returnStdout: true).trim()
+                    echo "Code de réponse SonarQube: ${curlTest}"
+
+                    if (curlTest != "200") {
+                        error("❌ SonarQube n'est pas accessible à ${SONAR_HOST_URL}")
+                    }
+                    echo "✅ SonarQube est accessible"
+                }
+            }
+        }
+
         stage('SonarQube Analysis') {
             steps {
                 dir('backend') {
@@ -46,7 +61,8 @@ pipeline {
                               -Dsonar.host.url=%SONAR_HOST_URL% ^
                               -Dsonar.login=%SONAR_TOKEN% ^
                               -Dsonar.java.coveragePlugin=jacoco ^
-                              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml ^
+                              -X
                         """
                     }
                 }
@@ -65,7 +81,7 @@ pipeline {
             when {
                 allOf {
                     branch 'jenkins-Ruben'
-                    expression { return env.QUALITY_GATE_STATUS == 'PASSED' }
+                    expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
                 }
             }
             steps {
@@ -74,7 +90,7 @@ pipeline {
                 }
             }
         }
-    }  // ← FIN DU BLOC stages
+    }
 
     post {
         always {
