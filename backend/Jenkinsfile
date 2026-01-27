@@ -49,10 +49,18 @@ pipeline {
             steps {
                 echo 'Analyse de la qualité du code...'
                 dir(BACKEND_DIR) {
-                    withSonarQubeEnv('SonarQube') {
-                        bat 'mvn sonar:sonar ' +
-                            '-Dsonar.projectKey=gestion-bancaire ' +
-                            '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
+                    script {
+                        // On utilise les variables d'environnement de la config Jenkins si elles existent, 
+                        // sinon on peut forcer les valeurs ici pour le test
+                        withSonarQubeEnv('SonarQube') {
+                            bat 'mvn sonar:sonar -X ' +
+                                '-Dsonar.projectKey=gestion-bancaire ' +
+                                '-Dsonar.host.url=http://localhost:9000 ' +
+                                '-Dsonar.login=admin ' +
+                                '-Dsonar.password=Yvan2025???? ' +
+                                '-Dsonar.userHome=.sonar_cache ' +
+                                '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
+                        }
                     }
                 }
             }
