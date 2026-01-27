@@ -32,8 +32,8 @@
         <maven.compiler.target>17</maven.compiler.target>
 		<sonar.organization>eadl-github</sonar.organization>
 		<sonar.host.url>http://localhost:9000</sonar.host.url>
-		<sonar.projectKey>Core-banking</sonar.projectKey>
-		<sonar.projectName>Core banking</sonar.projectName>
+		<sonar.projectKey>gestion-bancaire</sonar.projectKey>
+		<sonar.projectName>gestion-bancaire</sonar.projectName>
 		<sonar-maven-plugin.version>4.0.0.4121</sonar-maven-plugin.version>
 	</properties>
 	<dependencies>
