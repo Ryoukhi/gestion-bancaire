@@ -53,11 +53,11 @@ pipeline {
                         // On utilise les variables d'environnement de la config Jenkins si elles existent, 
                         // sinon on peut forcer les valeurs ici pour le test
                         withSonarQubeEnv('SonarQube') {
-                            bat 'mvn sonar:sonar -X ' +
+                            // Remplacez le token ci-dessous par celui généré dans SonarQube
+                            bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar ' +
                                 '-Dsonar.projectKey=gestion-bancaire ' +
                                 '-Dsonar.host.url=http://192.168.1.180:9000 ' +
-                                '-Dsonar.login=admin ' +
-                                '-Dsonar.password=Yvan2025???? ' +
+                                '-Dsonar.login=sqp_4f6491eb9eceb046118ef43fc7c48396f162ccf5 ' +
                                 '-Dsonar.userHome=.sonar_cache ' +
                                 '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
                         }
