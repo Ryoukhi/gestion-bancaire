@@ -19,8 +19,8 @@ WORKDIR /app
 # Copier le .jar depuis l'image de build
 COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 
-# Exposer le port d'ecoute de l'application
-EXPOSE 8080 8085
+# Exposer le port d'ecoute de l'application (8081 selon application.properties)
+EXPOSE 8081
 
 # Lancer le service avec déchiffrement actif
 ENTRYPOINT ["sh", "-c", "java -jar app.jar"]

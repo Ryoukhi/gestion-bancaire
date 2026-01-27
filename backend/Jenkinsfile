@@ -50,14 +50,14 @@ pipeline {
                 echo 'Analyse de la qualité du code...'
                 dir(BACKEND_DIR) {
                         script {
-                            echo "--- TEST DE CONNECTIVITÉ ---"
-                            // Ce test va nous montrer si le serveur répond quelque chose
-                            bat "curl -v http://127.0.0.1:9000/batch/index || echo 'CURL A ECHOUE'"
+                            echo "--- TEST DE CONNECTIVITÉ (PowerShell) ---"
+                            // Cette commande affiche les 500 premiers caractères de la réponse de SonarQube
+                            bat 'powershell -Command "$resp = Invoke-WebRequest -Uri http://192.168.1.180:9000/batch/index -UseBasicParsing; $resp.Content.Substring(0, [Math]::Min(500, $resp.Content.Length))"'
                             
                             withSonarQubeEnv('SonarQube') {
                                 bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar ' +
                                     '-Dsonar.projectKey=gestion-bancaire ' +
-                                    '-Dsonar.host.url=http://127.0.0.1:9000 ' +
+                                    '-Dsonar.host.url=http://192.168.1.180:9000 ' +
                                     '-Dsonar.login=sqp_4f6491eb9eceb046118ef43fc7c48396f162ccf5 ' +
                                     '-Dsonar.userHome=.sonar_cache ' +
                                     '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
