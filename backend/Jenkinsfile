@@ -15,12 +15,7 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                echo 'Récupération du code source...'
-                git branch: 'yvan-pipeline', url: 'https://github.com/Ryoukhi/gestion-bancaire.git'
-            }
-        }
+        // L'étape Checkout automatique de Jenkins remplace avantageusement celle-ci
 
         stage('Build') {
             steps {
