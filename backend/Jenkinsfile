@@ -55,7 +55,7 @@ pipeline {
                         withSonarQubeEnv('SonarQube') {
                             bat 'mvn sonar:sonar -X ' +
                                 '-Dsonar.projectKey=gestion-bancaire ' +
-                                '-Dsonar.host.url=http://localhost:9000 ' +
+                                '-Dsonar.host.url=http://192.168.1.180:9000 ' +
                                 '-Dsonar.login=admin ' +
                                 '-Dsonar.password=Yvan2025???? ' +
                                 '-Dsonar.userHome=.sonar_cache ' +
