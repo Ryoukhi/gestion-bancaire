@@ -18,7 +18,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Récupération du code source...'
-                git branch: 'main', url: 'https://github.com/Ryoukhi/gestion-bancaire.git'
+                git branch: 'yvan-pipeline', url: 'https://github.com/Ryoukhi/gestion-bancaire.git'
             }
         }
 
