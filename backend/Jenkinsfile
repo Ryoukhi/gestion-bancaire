@@ -45,7 +45,6 @@ pipeline {
                 echo 'Analyse de la qualité du code...'
                 dir(BACKEND_DIR) {
                         script {
-                        script {
                             echo "--- ANALYSE SONARQUBE (VIA DOCKER) ---"
                             withSonarQubeEnv('SonarQube') {
                                 // On utilise l'image Docker officielle du scanner pour contourner les problèmes d'environnement Windows
