@@ -46,11 +46,13 @@ pipeline {
                 dir(BACKEND_DIR) {
                         script {
                             echo "--- ANALYSE SONARQUBE ---"
-                            // Utilisation de la version stable 3.9.1 pour éviter les erreurs d'API v2
+                            // Utilisation du Scanner 5.0 (obligatoire pour SonarQube récents)
+                            // + Skip JRE Provisioning pour utiliser le Java de Jenkins et éviter le crash DLL
                             withSonarQubeEnv('SonarQube') {
-                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar ' +
+                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar ' +
                                     '-Dsonar.projectKey=gestion-bancaire ' +
-                                    '-Dsonar.userHome=.sonar_cache ' +
+                                    '-Dsonar.host.url=http://127.0.0.1:9000 ' +
+                                    '-Dsonar.scanner.skipJreProvisioning=true ' +
                                     '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
                             }
                         }
