@@ -46,10 +46,9 @@ pipeline {
                 dir(BACKEND_DIR) {
                         script {
                             echo "--- ANALYSE SONARQUBE ---"
-                            // Utilisation du Scanner 5.0 (obligatoire pour SonarQube récents)
-                            // + Skip JRE Provisioning pour utiliser le Java de Jenkins et éviter le crash DLL
+                            // Utilisation du Scanner 4.0 (Version pivot : compatible API v1 et serveurs récents)
                             withSonarQubeEnv('SonarQube') {
-                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar ' +
+                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:4.0.0.4121:sonar ' +
                                     '-Dsonar.projectKey=gestion-bancaire ' +
                                     '-Dsonar.host.url=http://127.0.0.1:9000 ' +
                                     '-Dsonar.scanner.skipJreProvisioning=true ' +
