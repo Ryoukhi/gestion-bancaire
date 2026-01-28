@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "krieger747/core-banking-app"
+        DOCKER_IMAGE = "yvezzz/core-banking-app"
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         DOCKER_CREDENTIALS = 'dockerhub-credentials'
         BACKEND_DIR = 'backend'

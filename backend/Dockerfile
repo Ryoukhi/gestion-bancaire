@@ -1,26 +1,25 @@
 # === Stage 1 : Construction avec Maven ===
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 
-# Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers du projet
+# Optimisation : Copier uniquement le pom.xml pour télécharger les dépendances (Cache Docker)
 COPY pom.xml .
-COPY src ./src
+RUN mvn dependency:go-offline -B
 
-RUN  mvn clean package -DskipTests
+# Copier les sources et construire
+COPY src ./src
+RUN mvn clean package -DskipTests
 
 # === Stage 2 : Image d'exécution légère ===
 FROM eclipse-temurin:21-jre-alpine
 
-# Définir le repertoire de travail dans l'image d'execution
 WORKDIR /app
 
 # Copier le .jar depuis l'image de build
 COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 
-# Exposer le port d'ecoute de l'application (8081 selon application.properties)
+# Exposer le port d'ecoute (8081)
 EXPOSE 8081
 
-# Lancer le service avec déchiffrement actif
 ENTRYPOINT ["sh", "-c", "java -jar app.jar"]
