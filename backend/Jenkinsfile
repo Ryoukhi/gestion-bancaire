@@ -46,13 +46,19 @@ pipeline {
                 dir(BACKEND_DIR) {
                         script {
                             echo "--- ANALYSE SONARQUBE ---"
-                            withSonarQubeEnv('SonarQube') {
-                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar ' +
-                                    '-Dsonar.projectKey=gestion-bancaire ' +
-                                    '-Dsonar.host.url=http://127.0.0.1:9000/ ' +  // Ajout du slash final important
-                                    '-Dsonar.ws.timeout=60 ' +                    // Augmentation du dÃ©lai d\'attente
-                                    '-Dsonar.scanner.skipJreProvisioning=true ' + // Utilise le Java de Jenkins
-                                    '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
+                            try {
+                                withSonarQubeEnv('SonarQube') {
+                                    // On tente l'analyse mais on protège le pipeline contre les plantages du serveur
+                                    bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar ' +
+                                        '-Dsonar.projectKey=gestion-bancaire ' +
+                                        '-Dsonar.host.url=http://127.0.0.1:9000 ' +
+                                        '-Dsonar.scanner.skipJreProvisioning=true ' +
+                                        '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
+                                }
+                            } catch (Exception e) {
+                                echo "⚠️ ATTENTION : L'analyse SonarQube a échoué (Serveur instable ou API manquante)."
+                                echo "➡️ CONTINUATION DU PIPELINE : On passe à la construction Docker malgré l'erreur Sonar."
+                                currentBuild.result = 'UNSTABLE' // Le build sera jaune (instable) mais pas rouge (échec)
                             }
                         }
                 }
