@@ -45,23 +45,14 @@ pipeline {
                 echo 'Analyse de la qualité du code...'
                 dir(BACKEND_DIR) {
                         script {
-                            echo "--- ANALYSE SONARQUBE (VIA DOCKER) ---"
+                            echo "--- ANALYSE SONARQUBE ---"
                             withSonarQubeEnv('SonarQube') {
-                                // On utilise l'image Docker officielle du scanner pour contourner les problèmes d'environnement Windows
-                                def sonarScannerImage = 'sonarsource/sonar-scanner-cli:latest'
-                                
-                                // Commande Docker pour lancer le scanner
-                                // On monte le dossier courant (.) dans /usr/src du conteneur
-                                bat """
-                                    docker run --rm ^
-                                    -e SONAR_HOST_URL=http://192.168.1.180:9000 ^
-                                    -e SONAR_LOGIN=sqp_4f6491eb9eceb046118ef43fc7c48396f162ccf5 ^
-                                    -v "%WORKSPACE%/backend":/usr/src ^
-                                    --network host ^
-                                    ${sonarScannerImage} ^
-                                    -Dsonar.projectKey=gestion-bancaire ^
-                                    -Dsonar.java.binaries=target/classes
-                                """
+                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar ' +
+                                    '-Dsonar.projectKey=gestion-bancaire ' +
+                                    '-Dsonar.host.url=http://127.0.0.1:9000/ ' +  // Ajout du slash final important
+                                    '-Dsonar.ws.timeout=60 ' +                    // Augmentation du dÃ©lai d\'attente
+                                    '-Dsonar.scanner.skipJreProvisioning=true ' + // Utilise le Java de Jenkins
+                                    '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
                             }
                         }
                 }
