@@ -46,9 +46,9 @@ pipeline {
                 dir(BACKEND_DIR) {
                         script {
                             echo "--- ANALYSE SONARQUBE ---"
-                            // On utilise uniquement la config globale de Jenkins pour plus de fiabilité
+                            // Utilisation de la version stable 3.9.1 pour éviter les erreurs d'API v2
                             withSonarQubeEnv('SonarQube') {
-                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar ' +
+                                bat 'mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar ' +
                                     '-Dsonar.projectKey=gestion-bancaire ' +
                                     '-Dsonar.userHome=.sonar_cache ' +
                                     '-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
